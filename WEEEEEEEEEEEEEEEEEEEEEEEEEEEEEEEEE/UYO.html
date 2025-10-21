@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tic Tac Toe — Play vs Computer</title>
+  <style>
+    :root{
+      --bg1:#0f172a;
+      --bg2:#0b1220;
+      --accent1:#7c3aed;
+      --accent2:#06b6d4;
+      --warm1:#f97316;
+      --warm2:#f43f5e;
+      --glass: rgba(255,255,255,0.06);
+      --glass-strong: rgba(255,255,255,0.08);
+      --muted:#9aa4b2;
+      --success: #10b981;
+      --danger: #ef4444;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.12), transparent 8%),
+        radial-gradient(900px 500px at 95% 90%, rgba(6,182,212,0.08), transparent 6%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
+      color: #e6eef8;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+    }
+
+    .card{
+      width: min(760px, 96vw);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+      border: 1px solid rgba(255,255,255,0.04);
+      overflow: hidden;
+      position:relative;
+      padding:20px;
+      backdrop-filter: blur(6px) saturate(120%);
+    }
+
+    header{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:12px;
+    }
+    .title{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-0.2px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .btn{
+      background:linear-gradient(90deg,var(--accent1),var(--accent2));
+      border:none;color:white;padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer;
+      box-shadow: 0 4px 14px rgba(7,9,34,0.6);
+    }
+    .btn.secondary{
+      background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:600;
+    }
+    .small{
+      padding:6px 10px;border-radius:8px;font-size:13px;
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns: 1fr 300px;
+      gap:18px;
+    }
+
+    /* Board */
+    .board-wrap{
+      padding:18px;
+      border-radius:12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    .board{
+      width:100%;
+      max-width:420px;
+      aspect-ratio:1/1;
+      display:grid;
+      grid-template-columns: repeat(3,1fr);
+      gap:12px;
+      margin:auto;
+      padding:14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+      border-radius:12px;
+    }
+    .cell{
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+      border-radius:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .12s ease, box-shadow .12s ease;
+      box-shadow: 0 4px 14px rgba(2,6,23,0.5), inset 0 -6px 14px rgba(255,255,255,0.01);
+    }
+    .cell:hover{ transform: translateY(-4px) }
+    .cell.disabled{ cursor:default; opacity:0.9; transform:none; }
+
+    /* mark sizes */
+    .mark{ width:64px; height:64px; display:flex; align-items:center; justify-content:center; }
+    svg{ display:block }
+
+    /* Right panel */
+    .panel{
+      padding:14px;
+      border-radius:12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.03);
+      height:100%;
+    }
+    .choose{
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+    }
+    .choice{
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:10px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      border:1px solid rgba(255,255,255,0.03);
+      background:var(--glass);
+    }
+    .choice.active{
+      box-shadow: 0 6px 20px rgba(7,9,34,0.6);
+      border: 1px solid rgba(124,58,237,0.28);
+      background: linear-gradient(90deg, rgba(124,58,237,0.08), rgba(6,182,212,0.03));
+      color: white;
+    }
+
+    .status{
+      margin-top:16px;
+      font-size:14px;
+    }
+    .scores{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap }
+    .score{ padding:8px 10px; border-radius:8px; background:var(--glass-strong); font-weight:600; color:var(--muted); }
+
+    .footer-actions{ display:flex; gap:10px; margin-top:18px; }
+
+    .overlay-win{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+    }
+    .win-banner{
+      padding:18px 24px;
+      border-radius:14px;
+      background: linear-gradient(90deg, rgba(124,58,237,0.18), rgba(6,182,212,0.14));
+      color:#041024;
+      font-weight:800;
+      transform: translateY(-12px);
+      box-shadow: 0 18px 40px rgba(3,6,23,0.55);
+    }
+
+    /* small responsive */
+    @media (max-width:880px){
+      .layout{ grid-template-columns: 1fr; }
+      .panel{ order:2 }
+      .board-wrap{ order:1 }
+      .board{ max-width:360px }
+    }
+  </style>
+</head>
+<body>
+  <div class="card" role="application" aria-label="Tic Tac Toe game">
+    <header>
+      <div class="title">
+        <!-- small brand svg -->
+        <svg width="42" height="42" viewBox="0 0 24 24" aria-hidden="true">
+          <defs>
+            <linearGradient id="g1" x1="0" x2="1">
+              <stop offset="0" stop-color="#7c3aed"/>
+              <stop offset="1" stop-color="#06b6d4"/>
+            </linearGradient>
+          </defs>
+          <rect x="2" y="2" width="20" height="20" rx="6" fill="url(#g1)" />
+          <path d="M8 8 L16 16 M16 8 L8 16" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <h1>Tic Tac Toe — vs Computer</h1>
+          <p class="lead">Choose X or O. The computer plays perfectly (minimax).</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="resetAll" class="btn small secondary">Reset All</button>
+        <button id="newRound" class="btn small">Play Again</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <div class="board-wrap">
+        <div id="board" class="board" aria-label="tic tac toe board">
+          <!-- cells inserted by JS -->
+        </div>
+      </div>
+
+      <aside class="panel" aria-label="controls and status">
+        <div>
+          <strong>Pick your mark</strong>
+          <div class="choose" role="radiogroup" aria-label="Choose X or O">
+            <div id="pickX" class="choice active" role="radio" aria-checked="true" tabindex="0" data-mark="X">
+              <!-- X icon -->
+              <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+                <defs>
+                  <linearGradient id="gradXsmall" x1="0" x2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#06b6d4"/></linearGradient>
+                </defs>
+                <path d="M5 5L19 19M19 5L5 19" stroke="url(#gradXsmall)" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <div>
+                <div style="font-weight:700">X</div>
+                <div style="font-size:12px;color:var(--muted)">Strong / First-move</div>
+              </div>
+            </div>
+
+            <div id="pickO" class="choice" role="radio" aria-checked="false" tabindex="0" data-mark="O">
+              <!-- O icon -->
+              <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+                <defs>
+                  <linearGradient id="gradOsmall" x1="0" x2="1"><stop offset="0" stop-color="#f97316"/><stop offset="1" stop-color="#f43f5e"/></linearGradient>
+                </defs>
+                <circle cx="12" cy="12" r="7" fill="none" stroke="url(#gradOsmall)" stroke-width="1.8" />
+              </svg>
+              <div>
+                <div style="font-weight:700">O</div>
+                <div style="font-size:12px;color:var(--muted)">Play second</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="status" id="statusText" aria-live="polite" style="color:var(--muted);">
+            Status: <span id="stat">Choose X or O to start</span>
+          </div>
+
+          <div class="scores" aria-hidden="false" style="margin-top:8px">
+            <div class="score" id="scorePlayer">You: 0</div>
+            <div class="score" id="scoreAi">Computer: 0</div>
+            <div class="score" id="scoreDraw">Draws: 0</div>
+          </div>
+
+          <div class="footer-actions">
+            <button id="hintBtn" class="btn small secondary">Hint (safe)</button>
+            <button id="undoBtn" class="btn small secondary">Undo Move</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- animated overlay for winner -->
+    <div class="overlay-win" id="overlay" style="display:none;pointer-events:none;">
+      <div class="win-banner" id="banner"></div>
+    </div>
+  </div>
+
+<script>
+/*
+  Tic Tac Toe — single file HTML + JS
+  - Minimax for perfect AI
+  - Player chooses X or O
+  - AI starts if player picks O
+  - Small 'thinking' delay for UX
+*/
+
+(function(){
+  const boardEl = document.getElementById('board');
+  const statEl = document.getElementById('stat');
+  const pickX = document.getElementById('pickX');
+  const pickO = document.getElementById('pickO');
+  const newRoundBtn = document.getElementById('newRound');
+  const resetAllBtn = document.getElementById('resetAll');
+  const hintBtn = document.getElementById('hintBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const overlay = document.getElementById('overlay');
+  const banner = document.getElementById('banner');
+  const scorePlayer = document.getElementById('scorePlayer');
+  const scoreAi = document.getElementById('scoreAi');
+  const scoreDraw = document.getElementById('scoreDraw');
+
+  let board = Array(9).fill(null);
+  let player = 'X';
+  let ai = 'O';
+  let gameActive = false;
+  let thinking = false;
+  let scores = { player:0, ai:0, draws:0 };
+  let history = []; // for undo
+
+  const WIN = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  // create 9 cells
+  function renderBoard(){
+    boardEl.innerHTML = '';
+    for(let i=0;i<9;i++){
+      const btn = document.createElement('button');
+      btn.className = 'cell' + (board[i] ? ' disabled' : '');
+      btn.setAttribute('data-i', i);
+      btn.setAttribute('aria-label', 'cell-'+i);
+      btn.disabled = !!board[i] || !gameActive || thinking;
+      btn.innerHTML = board[i] ? markToSVG(board[i]) : '';
+      btn.addEventListener('click', onCellClick);
+      boardEl.appendChild(btn);
+    }
+  }
+
+  function markToSVG(m){
+    if(m==='X'){
+      return `
+        <div class="mark" aria-hidden="true">
+          <svg width="64" height="64" viewBox="0 0 24 24">
+            <defs>
+              <linearGradient id="gx" x1="0" x2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#06b6d4"/></linearGradient>
+              <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.35"/></filter>
+            </defs>
+            <path d="M4 4L20 20M20 4L4 20" stroke="url(#gx)" stroke-width="2.4" stroke-linecap="round" filter="url(#sh)"/>
+          </svg>
+        </div>`;
+    } else {
+      return `
+        <div class="mark" aria-hidden="true">
+          <svg width="64" height="64" viewBox="0 0 24 24">
+            <defs>
+              <linearGradient id="go" x1="0" x2="1"><stop offset="0" stop-color="#f97316"/><stop offset="1" stop-color="#f43f5e"/></linearGradient>
+              <filter id="sh2"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.35"/></filter>
+            </defs>
+            <circle cx="12" cy="12" r="7" fill="none" stroke="url(#go)" stroke-width="2.4" filter="url(#sh2)"/>
+          </svg>
+        </div>`;
+    }
+  }
+
+  function onCellClick(e){
+    const idx = +e.currentTarget.getAttribute('data-i');
+    if(!gameActive || thinking) return;
+    if(board[idx]) return;
+    makeMove(idx, player);
+    // after player move, if no winner, AI plays
+    const res = checkWinner(board);
+    if(!res.winner){
+      setTimeout(()=> aiMove(), 220); // small UX delay
+    }
+  }
+
+  function makeMove(idx, mark){
+    if(board[idx]) return false;
+    history.push(board.slice());
+    board[idx] = mark;
+    renderBoard();
+    const res = checkWinner(board);
+    if(res.winner){
+      endGame(res);
+    }
+    return true;
+  }
+
+  function checkWinner(bd){
+    for(const combo of WIN){
+      const [a,b,c] = combo;
+      if(bd[a] && bd[a] === bd[b] && bd[a] === bd[c]){
+        return { winner: bd[a], combo };
+      }
+    }
+    if(bd.every(cell => cell !== null)) return { winner: 'draw' };
+    return { winner: null };
+  }
+
+  function endGame(res){
+    gameActive = false;
+    renderBoard();
+    if(res.winner === 'draw'){
+      statEl.textContent = 'Draw!';
+      scores.draws++;
+      scoreDraw.textContent = 'Draws: ' + scores.draws;
+      showBanner('It\'s a draw', '#f59e0b');
+    } else {
+      const who = res.winner === player ? 'You win!' : 'Computer wins';
+      statEl.textContent = who;
+      if(res.winner === player){
+        scores.player++;
+        scorePlayer.textContent = 'You: ' + scores.player;
+        showBanner('You Win 🎉', '#10b981');
+      } else {
+        scores.ai++;
+        scoreAi.textContent = 'Computer: ' + scores.ai;
+        showBanner('Computer Wins', '#ef4444');
+      }
+      // highlight winning combo visually (simple)
+      highlightCombo(res.combo);
+    }
+  }
+
+  function highlightCombo(combo){
+    // add subtle ring to winning cells
+    const cells = boardEl.querySelectorAll('.cell');
+    combo.forEach(i=>{
+      const c = cells[i];
+      if(c) c.style.boxShadow = '0 8px 30px rgba(7,9,34,0.7), 0 0 0 6px rgba(124,58,237,0.12)';
+    });
+  }
+
+  // show banner
+  function showBanner(text, bg){
+    banner.textContent = text;
+    banner.style.background = bg;
+    overlay.style.display = 'flex';
+    setTimeout(()=> overlay.style.display = 'none', 2600);
+  }
+
+  // AI stuff: minimax
+  function aiMove(){
+    if(!gameActive) return;
+    thinking = true;
+    statEl.textContent = 'Computer is thinking...';
+    renderBoard(); // disable buttons visually
+    setTimeout(()=>{
+      const idx = bestMove(board, ai, player);
+      if(idx !== null){
+        makeMove(idx, ai);
+      }
+      thinking = false;
+      if(gameActive) statEl.textContent = 'Your turn';
+      renderBoard();
+    }, 420); // show thinking
+  }
+
+  function bestMove(bd, aiMark, humanMark){
+    // if empty board, pick center
+    if(bd.every(c => c === null)) return 4;
+    let bestVal = -Infinity;
+    let move = null;
+    for(let i=0;i<9;i++){
+      if(bd[i] === null){
+        bd[i] = aiMark;
+        const val = minimax(bd, 0, false, aiMark, humanMark);
+        bd[i] = null;
+        if(val > bestVal){
+          bestVal = val;
+          move = i;
+        }
+      }
+    }
+    return move;
+  }
+
+  function minimax(bd, depth, isMax, aiMark, humanMark){
+    const res = checkWinner(bd);
+    if(res.winner === aiMark) return 10 - depth;
+    if(res.winner === humanMark) return depth - 10;
+    if(res.winner === 'draw') return 0;
+
+    if(isMax){
+      let best = -Infinity;
+      for(let i=0;i<9;i++){
+        if(bd[i] === null){
+          bd[i] = aiMark;
+          const val = minimax(bd, depth+1, false, aiMark, humanMark);
+          bd[i] = null;
+          best = Math.max(best, val);
+        }
+      }
+      return best;
+    } else {
+      let best = Infinity;
+      for(let i=0;i<9;i++){
+        if(bd[i] === null){
+          bd[i] = humanMark;
+          const val = minimax(bd, depth+1, true, aiMark, humanMark);
+          bd[i] = null;
+          best = Math.min(best, val);
+        }
+      }
+      return best;
+    }
+  }
+
+  // UI: choosing X or O
+  function choose(mark){
+    player = mark;
+    ai = (mark === 'X') ? 'O' : 'X';
+    pickX.classList.toggle('active', mark==='X');
+    pickO.classList.toggle('active', mark==='O');
+    pickX.setAttribute('aria-checked', mark==='X');
+    pickO.setAttribute('aria-checked', mark==='O');
+    startNewRound(true);
+  }
+
+  function startNewRound(keepScores=false){
+    board = Array(9).fill(null);
+    history = [];
+    gameActive = true;
+    thinking = false;
+    statEl.textContent = 'Your turn';
+    // If player chose O, AI starts
+    if(player === 'O'){
+      setTimeout(()=> {
+        if(gameActive) aiMove();
+      }, 320);
+      statEl.textContent = 'Computer starts';
+    }
+    renderBoard();
+    if(!keepScores){
+      scores = {player:0, ai:0, draws:0};
+      scorePlayer.textContent = 'You: 0';
+      scoreAi.textContent = 'Computer: 0';
+      scoreDraw.textContent = 'Draws: 0';
+    }
+  }
+
+  newRoundBtn.addEventListener('click', ()=> startNewRound(true));
+  resetAllBtn.addEventListener('click', ()=> {
+    choose('X');
+    startNewRound(false);
+    statEl.textContent = 'Choose X or O to start';
+  });
+
+  // pick interactions
+  pickX.addEventListener('click', ()=> choose('X'));
+  pickO.addEventListener('click', ()=> choose('O'));
+  // keyboard access
+  [pickX,pickO].forEach(el=>{
+    el.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+    });
+  });
+
+  // Hint button: safe - show one best move for player (not too revealing)
+  hintBtn.addEventListener('click', ()=>{
+    if(!gameActive || thinking) return;
+    // compute best move for player (minimax as if player is maximizing)
+    let best = -Infinity; let idx = null;
+    for(let i=0;i<9;i++){
+      if(board[i]===null){
+        board[i] = player;
+        const val = minimax(board, 0, false, player, ai); // treat player as 'ai' here to get best
+        board[i] = null;
+        if(val > best){ best = val; idx = i; }
+      }
+    }
+    if(idx !== null){
+      // flash cell
+      const c = boardEl.querySelector(`[data-i='${idx}']`);
+      if(c){
+        const saved = c.style.boxShadow;
+        c.style.boxShadow = '0 10px 40px rgba(124,58,237,0.28)';
+        setTimeout(()=> c.style.boxShadow = saved, 900);
+      }
+    }
+  });
+
+  // Undo: revert one move (and AI move if present)
+  undoBtn.addEventListener('click', ()=>{
+    if(history.length === 0) return;
+    // revert to previous board state
+    board = history.pop();
+    // also pop extra if last move was by AI and we want to revert both
+    renderBoard();
+    gameActive = true;
+    statEl.textContent = 'Undid last move';
+  });
+
+  // initial render and setup
+  renderBoard();
+  // default pick X
+  choose('X');
+})();
+</script>
+</body>
+</html>

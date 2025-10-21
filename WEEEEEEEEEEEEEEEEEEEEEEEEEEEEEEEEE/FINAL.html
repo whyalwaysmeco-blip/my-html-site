@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Color Click Reaction Game</title>
+  <style>
+    body {
+      display: flex; justify-content: center; align-items: center;
+      height: 100vh; margin: 0;
+      background: #1e1e2f;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+      flex-direction: column;
+    }
+    h1 {
+      margin-bottom: 12px;
+    }
+    #game-container {
+      background: #27293d;
+      padding: 20px 40px 40px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 4px 25px rgba(0,0,0,0.7);
+      width: 350px;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(2, 140px);
+      grid-gap: 15px;
+      margin-top: 20px;
+    }
+    .tile {
+      width: 140px;
+      height: 140px;
+      border-radius: 15px;
+      cursor: pointer;
+      opacity: 0.7;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      transition: opacity 0.3s ease, box-shadow 0.3s ease;
+      user-select: none;
+    }
+    .tile.red { background: #ff5959; }
+    .tile.green { background: #59ff8a; }
+    .tile.blue { background: #5992ff; }
+    .tile.yellow { background: #fff559; color: black; }
+    .tile.active {
+      opacity: 1;
+      box-shadow: 0 0 25px 6px #fff;
+    }
+    #info {
+      margin-top: 15px;
+      font-size: 18px;
+      height: 26px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 35px;
+      font-size: 18px;
+      background: #ff5959;
+      border: none;
+      border-radius: 35px;
+      cursor: pointer;
+      color: #fff;
+      font-weight: 700;
+      transition: background 0.3s ease;
+      user-select: none;
+    }
+    button:hover {
+      background: #e04b4b;
+    }
+    #popup {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(30,30,47,0.95);
+      border-radius: 20px;
+      box-shadow: 0 0 40px #ff5959aa;
+      color: #fff;
+      text-align: center;
+      padding: 30px 40px;
+      display: none;
+      z-index: 10;
+      width: 300px;
+    }
+    #popup button {
+      background: #59ff8a;
+      color: #000;
+      margin-top: 20px;
+    }
+    #popup button:hover {
+      background: #48d474;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>Color Click Reaction</h1>
+    <div id="board">
+      <div class="tile red" data-color="red"></div>
+      <div class="tile green" data-color="green"></div>
+      <div class="tile blue" data-color="blue"></div>
+      <div class="tile yellow" data-color="yellow"></div>
+    </div>
+    <div id="info">Press Start to Play!</div>
+    <button id="start-btn">Start</button>
+  </div>
+
+  <div id="popup">
+    <div id="popup-message"></div>
+    <button id="popup-retry">Retry</button>
+  </div>
+
+<script>
+  const tiles = document.querySelectorAll('.tile');
+  const colors = ['red', 'green', 'blue', 'yellow'];
+  const info = document.getElementById('info');
+  const startBtn = document.getElementById('start-btn');
+  const popup = document.getElementById('popup');
+  const popupMessage = document.getElementById('popup-message');
+  const popupRetry = document.getElementById('popup-retry');
+
+  let sequence = [];
+  let playerInputIndex = 0;
+  let round = 0;
+  let playingSequence = false;
+  let speed = 800; 
+
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  async function flashTile(color) {
+    const tile = [...tiles].find(t => t.dataset.color === color);
+    tile.classList.add('active');
+    await sleep(speed * 0.6);
+    tile.classList.remove('active');
+    await sleep(speed * 0.2);
+  }
+
+  async function playSequence() {
+    playingSequence = true;
+    for (let color of sequence) {
+      await flashTile(color);
+    }
+    playingSequence = false;
+    info.textContent = `Your turn: Repeat ${sequence.length} colors`;
+  }
+
+  function nextRound() {
+    round++;
+    speed = Math.max(300, 800 - round * 40); 
+    info.textContent = `Round ${round}`;
+    sequence.push(colors[Math.floor(Math.random() * colors.length)]);
+    playSequence();
+  }
+
+  function gameOver() {
+    info.textContent = "Game Over!";
+    popupMessage.textContent = `Game Over! You reached round ${round}.`;
+    popup.style.display = "block";
+  }
+
+  async function handleClick(e) {
+    if (playingSequence || !sequence.length) return;
+
+    const color = e.target.dataset.color;
+    if (!color) return;
+
+    await flashTile(color);
+
+    if (color === sequence[playerInputIndex]) {
+      playerInputIndex++;
+      if (playerInputIndex === sequence.length) {
+        playerInputIndex = 0;
+        await sleep(500);
+        nextRound();
+      }
+    } else {
+      gameOver();
+    }
+  }
+
+  function resetGame() {
+    sequence = [];
+    playerInputIndex = 0;
+    round = 0;
+    speed = 800;
+    info.textContent = "Press Start to Play!";
+  }
+
+  startBtn.addEventListener('click', () => {
+    resetGame();
+    nextRound();
+  });
+
+  popupRetry.addEventListener('click', () => {
+    popup.style.display = "none";
+    resetGame();
+    nextRound();
+  });
+
+  tiles.forEach(tile => tile.addEventListener('click', handleClick));
+</script>
+</body>
+</html>

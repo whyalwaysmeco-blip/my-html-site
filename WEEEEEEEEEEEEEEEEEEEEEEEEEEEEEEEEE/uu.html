@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Click-the-Ball — 60s Time-Challenge</title>
+
+<style>
+  :root{
+    --bg1: #0f172a;
+    --bg2: #071033;
+    --panel: rgba(255,255,255,0.06);
+    --accent: #7c3aed;
+    --accent-2: #06b6d4;
+    --glass: rgba(255,255,255,0.06);
+    --text: #e6eef8;
+    --danger: #ff4d6d;
+    --success: #7ee787;
+    --clock-size: 42px;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.12), transparent),
+                radial-gradient(800px 400px at 90% 90%, rgba(6,182,212,0.06), transparent),
+                linear-gradient(180deg,var(--bg1),var(--bg2));
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  .container{
+    max-width:1100px;
+    margin:28px auto;
+    padding:22px;
+  }
+
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:18px;
+  }
+
+  .title{
+    display:flex;
+    gap:12px;
+    align-items:center;
+  }
+
+  .logo{
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    padding:8px;
+    border-radius:10px;
+    box-shadow:0 6px 20px rgba(6,11,40,0.5);
+  }
+
+  h1{
+    margin:0;
+    font-size:20px;
+    font-weight:700;
+  }
+
+  .controls{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  .panel{
+    background:var(--panel);
+    border-radius:12px;
+    padding:10px 14px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    box-shadow: 0 6px 18px rgba(4,6,18,0.45);
+  }
+
+  .stat{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    font-weight:600;
+  }
+
+  .stat .num{
+    font-size:20px;
+    min-width:68px;
+    text-align:center;
+    background:linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    padding:6px 10px;
+    border-radius:8px;
+  }
+
+  button{
+    cursor:pointer;
+    border:0;
+    padding:10px 14px;
+    border-radius:10px;
+    font-weight:700;
+    background: linear-gradient(90deg,var(--accent),var(--accent-2));
+    color:white;
+    box-shadow: 0 8px 30px rgba(7,10,30,0.6);
+  }
+
+  button.secondary{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.06);
+    color:var(--text);
+    box-shadow:none;
+    font-weight:700;
+    padding:8px 12px;
+  }
+
+  main{
+    margin-top:18px;
+    display:flex;
+    gap:18px;
+  }
+
+  /* Board */
+  .board-wrap{
+    flex:1;
+    min-height:560px;
+    position:relative;
+    border-radius:16px;
+    padding:18px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.03);
+    overflow:hidden;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+  }
+
+  .board{
+    position:relative;
+    height:100%;
+    width:100%;
+    background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0 1px, transparent 1px 60px);
+  }
+
+  /* Objects */
+  .obj{
+    position:absolute;
+    user-select:none;
+    -webkit-user-select:none;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transform-origin:center center;
+    transition: transform 120ms ease, opacity 200ms ease;
+    will-change:transform,opacity;
+  }
+
+  .obj:active{ transform: scale(0.9); }
+
+  /* Ball styles */
+  .ball{
+    width:56px;
+    height:56px;
+    border-radius:50%;
+    background: radial-gradient(circle at 30% 25%, #ffffff 12%, #ffe7f8 16%, #ffb4da 40%, #ff6ab0 65%);
+    box-shadow: 0 8px 18px rgba(255,84,163,0.14), inset 0 -6px 18px rgba(0,0,0,0.12);
+    border: 2px solid rgba(255,255,255,0.14);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+    color:rgba(20,10,20,0.9);
+    font-size:18px;
+  }
+
+  /* Clock */
+  .clock{
+    width:var(--clock-size);
+    height:var(--clock-size);
+    border-radius:10px;
+    background: linear-gradient(180deg,#fff,#fff0);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px;
+    box-shadow: 0 8px 18px rgba(6,182,212,0.12);
+    border: 2px solid rgba(255,255,255,0.08);
+  }
+
+  .clock svg{ width:100%; height:100%; }
+
+  /* Bomb */
+  .bomb{
+    width:56px;
+    height:56px;
+    border-radius:50%;
+    background: linear-gradient(180deg,#2b2b2b,#151515);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.6);
+    border:1px solid rgba(255,255,255,0.05);
+  }
+
+  /* small UI panel to the right */
+  .side{
+    width:280px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .card{
+    background:var(--glass);
+    border-radius:12px;
+    padding:14px;
+  }
+
+  .hint{
+    opacity:0.85;
+    font-size:13px;
+  }
+
+  .center {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+
+  .big {
+    font-size:40px;
+    font-weight:900;
+    letter-spacing:1px;
+  }
+
+  .tiny {
+    font-size:12px;
+    opacity:0.9;
+  }
+
+  /* spawn animation */
+  @keyframes popIn {
+    0% { transform: scale(0.2); opacity:0; }
+    70% { transform: scale(1.06); opacity:1; }
+    100% { transform: scale(1); opacity:1; }
+  }
+
+  .pop {
+    animation: popIn 260ms cubic-bezier(.2,.9,.3,1);
+  }
+
+  /* disappearing fade */
+  .fadeOut { opacity:0; transform: scale(0.8); transition: opacity 200ms, transform 200ms; }
+
+  /* end screen overlay */
+  .overlay {
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(180deg, rgba(3,6,17,0.6), rgba(3,6,17,0.6));
+    z-index:80;
+  }
+
+  .endCard {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    border-radius:12px;
+    padding:22px;
+    width:420px;
+    text-align:center;
+    box-shadow: 0 30px 80px rgba(2,6,23,0.7);
+    border:1px solid rgba(255,255,255,0.04);
+  }
+
+  .muted { opacity:0.8; font-size:13px; }
+
+  footer { margin-top:18px; text-align:center; color:rgba(255,255,255,0.14); font-size:12px; }
+
+  /* small responsive tweaks */
+  @media (max-width:900px){
+    .container { padding:14px; }
+    main { flex-direction:column; }
+    .side { width:100%; order:2; }
+    .board-wrap { order:1; min-height:420px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="title">
+      <div class="logo">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <rect x="1" y="1" width="22" height="22" rx="6" fill="white" opacity="0.06"/>
+          <path d="M6 12c0-3.3 2.7-6 6-6s6 2.7 6 6-2.7 6-6 6-6-2.7-6-6z" fill="white" opacity="0.12"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Click-the-Ball — 60s Challenge</h1>
+        <div class="tiny muted">Click balls for points • clocks add +6s • bombs end the game</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="panel stat">
+        <div style="display:flex;flex-direction:column;align-items:flex-start">
+          <div class="tiny" style="opacity:0.8">Time</div>
+          <div class="num" id="timer">60</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-start">
+          <div class="tiny" style="opacity:0.8">Score</div>
+          <div class="num" id="score">0</div>
+        </div>
+      </div>
+
+      <button id="startBtn">Start</button>
+      <button id="restartBtn" class="secondary">Restart</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="board-wrap">
+      <div class="board" id="board" aria-label="Game board" role="application"></div>
+
+      <!-- overlay for end game -->
+      <div id="overlay" class="overlay" style="display:none;">
+        <div class="endCard">
+          <div style="font-size:14px; opacity:0.9; margin-bottom:10px">Game Over</div>
+          <div class="big" id="finalScore">0</div>
+          <div class="muted">points</div>
+          <div style="margin-top:14px">
+            <button id="playAgain">Play Again</button>
+            <button id="goBack" class="secondary" style="margin-left:8px">Close</button>
+          </div>
+          <div class="tiny" style="margin-top:10px; opacity:0.85">Tip: Clocks are rare — click them whenever you can!</div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="tiny">High Score</div>
+            <div style="font-weight:900;font-size:22px" id="highScore">0</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="tiny">Mode</div>
+            <div style="font-weight:800">Classic</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="tiny hint">How it works</div>
+        <ul style="margin:8px 0 0 18px; padding:0" class="tiny">
+          <li>Click the pink <strong>ball</strong> to score +1.</li>
+          <li>Click the <strong>clock</strong> to add +6 seconds.</li>
+          <li>Click the <strong>bomb</strong> and the round ends immediately.</li>
+        </ul>
+      </div>
+
+      <div class="card center" style="flex-direction:column; gap:10px;">
+        <div class="tiny muted">Spawn settings</div>
+        <div style="width:100%;">
+          <label class="tiny">Spawn interval (ms): <span id="spawnVal">700-1200</span></label>
+          <input id="spawnRange" type="range" min="300" max="1600" value="700" style="width:100%" />
+        </div>
+        <div class="tiny muted" style="opacity:0.8">(Use slider to tune difficulty — lower = faster)</div>
+      </div>
+
+    </aside>
+  </main>
+
+  <footer>Made with ❤️ — safe, simple, and fast to play.</footer>
+</div>
+
+<script>
+/* ======= Game logic ======= */
+const board = document.getElementById('board');
+const timerEl = document.getElementById('timer');
+const scoreEl = document.getElementById('score');
+const startBtn = document.getElementById('startBtn');
+const restartBtn = document.getElementById('restartBtn');
+const overlay = document.getElementById('overlay');
+const finalScore = document.getElementById('finalScore');
+const playAgain = document.getElementById('playAgain');
+const goBack = document.getElementById('goBack');
+const highScoreEl = document.getElementById('highScore');
+const spawnRange = document.getElementById('spawnRange');
+const spawnVal = document.getElementById('spawnVal');
+
+let score = 0;
+let timeLeft = 60;
+let timerInterval = null;
+let spawnIntervalId = null;
+let running = false;
+let highScore = Number(localStorage.getItem('ctb_highscore') || 0);
+highScoreEl.textContent = highScore;
+
+spawnRange.addEventListener('input', () => {
+  const v = spawnRange.value;
+  spawnVal.textContent = v + '-1200';
+});
+
+/* Utility: random position that keeps object fully inside board */
+function randomPosition(size){
+  const pad = 8;
+  const bw = board.clientWidth;
+  const bh = board.clientHeight;
+  const maxX = Math.max(1, bw - size - pad);
+  const maxY = Math.max(1, bh - size - pad);
+  const x = Math.floor(Math.random() * maxX) + pad;
+  const y = Math.floor(Math.random() * maxY) + pad;
+  return {x,y};
+}
+
+/* Create object elements */
+function createBall(){
+  const el = document.createElement('div');
+  el.className = 'obj ball pop';
+  el.title = 'Ball: +1 point';
+  el.innerHTML = '<div style="pointer-events:none">●</div>';
+  return el;
+}
+
+function createClock(){
+  const el = document.createElement('div');
+  el.className = 'obj clock pop';
+  el.title = 'Clock: +6 seconds';
+  // Inline clock SVG
+  el.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="#111827" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <circle cx="12" cy="12" r="6" stroke="#111827" stroke-width="1.2" fill="#fff" opacity="0.95"/>
+      <path d="M12 10v3l2 1" stroke="#111827" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+  `;
+  return el;
+}
+
+function createBomb(){
+  const el = document.createElement('div');
+  el.className = 'obj bomb pop';
+  el.title = 'Bomb: ends the game';
+  el.innerHTML = `
+    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden>
+      <path d="M12 2c-1 0-2 .8-2 2v1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <circle cx="12" cy="14" r="7" fill="#111" stroke="#fff" stroke-width="1.2"/>
+      <path d="M7 11l10-3" stroke="#ff6b6b" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+  `;
+  return el;
+}
+
+/* Object behavior */
+function placeAndAnimate(el, size=56, ttl=1200){
+  const pos = randomPosition(size);
+  el.style.left = pos.x + 'px';
+  el.style.top = pos.y + 'px';
+  el.style.width = size + 'px';
+  el.style.height = size + 'px';
+  board.appendChild(el);
+
+  // disappear after ttl if not clicked
+  const timeout = setTimeout(() => {
+    if (!el.classList.contains('fadeOut')) {
+      el.classList.add('fadeOut');
+      setTimeout(()=> safeRemove(el), 220);
+    }
+  }, ttl);
+
+  // click handler
+  const onClick = (ev) => {
+    ev.stopPropagation();
+    // prevent double-handling
+    if (!running) return;
+    if (el.dataset.clicked) return;
+    el.dataset.clicked = '1';
+
+    // visuals
+    el.classList.add('fadeOut');
+
+    // decide type
+    if (el.classList.contains('ball')) {
+      score += 1;
+      scoreEl.textContent = score;
+      // small pop animation
+      el.style.transform = 'scale(1.12)';
+      setTimeout(()=> safeRemove(el), 150);
+    } else if (el.classList.contains('clock')) {
+      timeLeft = Math.min(999, timeLeft + 6); // cap to avoid runaway
+      timerEl.textContent = Math.ceil(timeLeft);
+      // brief pulse
+      el.style.transform = 'scale(1.12)';
+      setTimeout(()=> safeRemove(el), 150);
+    } else if (el.classList.contains('bomb')) {
+      // immediate end
+      safeRemove(el);
+      endGame(true);
+      clearTimeout(timeout);
+      return;
+    }
+    clearTimeout(timeout);
+  };
+
+  el.addEventListener('click', onClick, {once:true});
+}
+
+/* safe remove element */
+function safeRemove(el){
+  if (!el) return;
+  if (el.parentNode) el.parentNode.removeChild(el);
+}
+
+/* Spawner */
+function spawnOnce(){
+  // choose type by weight: ball common, clock rare, bomb rare
+  const r = Math.random();
+  let el, size=56, ttl=1400;
+  if (r < 0.75) { // 75% ball
+    el = createBall();
+    size = 56;
+    ttl = 1100 + Math.random()*700;
+  } else if (r < 0.92) { // 17% clock
+    el = createClock();
+    size = 44;
+    ttl = 1500 + Math.random()*1200;
+  } else { // 8% bomb
+    el = createBomb();
+    size = 56;
+    ttl = 1400 + Math.random()*1000;
+  }
+  placeAndAnimate(el, size, ttl);
+}
+
+/* start spawning with variable interval */
+function startSpawning(){
+  // clear old
+  stopSpawning();
+  function loop(){
+    if (!running) return;
+    spawnOnce();
+    // spawn interval depends on slider
+    const min = Number(spawnRange.value) || 700;
+    const max = 1200;
+    const interval = Math.floor(min + Math.random()*(max-min));
+    spawnIntervalId = setTimeout(loop, interval);
+  }
+  loop();
+}
+
+function stopSpawning(){
+  if (spawnIntervalId) {
+    clearTimeout(spawnIntervalId);
+    spawnIntervalId = null;
+  }
+}
+
+/* Timer tick */
+function startTimer(){
+  if (timerInterval) clearInterval(timerInterval);
+  // use high-resolution stepping for smoother display
+  let last = performance.now();
+  timerInterval = setInterval(() => {
+    const now = performance.now();
+    const diff = (now - last) / 1000;
+    last = now;
+    if (!running) return;
+    timeLeft -= diff;
+    if (timeLeft <= 0) {
+      timeLeft = 0;
+      timerEl.textContent = 0;
+      endGame(false);
+    } else {
+      timerEl.textContent = Math.ceil(timeLeft);
+    }
+  }, 120); // update ~8 times/sec
+}
+
+/* Start / Restart / End */
+function startGame(){
+  if (running) return;
+  running = true;
+  score = 0;
+  timeLeft = 60;
+  scoreEl.textContent = score;
+  timerEl.textContent = timeLeft;
+  startBtn.disabled = true;
+  overlay.style.display = 'none';
+  clearBoard();
+  startSpawning();
+  startTimer();
+}
+
+function restartGame(){
+  // clear and reset
+  running = false;
+  stopSpawning();
+  if (timerInterval) clearInterval(timerInterval);
+  clearBoard();
+  score = 0;
+  timeLeft = 60;
+  scoreEl.textContent = score;
+  timerEl.textContent = timeLeft;
+  startBtn.disabled = false;
+  overlay.style.display = 'none';
+}
+
+function endGame(hitBomb=false){
+  running = false;
+  stopSpawning();
+  if (timerInterval) clearInterval(timerInterval);
+  // show overlay
+  finalScore.textContent = score;
+  overlay.style.display = 'flex';
+  // update highscore
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('ctb_highscore', highScore);
+    highScoreEl.textContent = highScore;
+  }
+  startBtn.disabled = false;
+  // optional message could show bomb or time-out
+  // remove remaining objects
+  setTimeout(clearBoard, 120);
+}
+
+/* clear board objects */
+function clearBoard(){
+  const children = Array.from(board.children);
+  children.forEach(c => {
+    if (c === overlay) return;
+    c.remove();
+  });
+}
+
+/* Event wiring */
+startBtn.addEventListener('click', () => {
+  startGame();
+});
+
+restartBtn.addEventListener('click', () => {
+  restartGame();
+});
+
+playAgain.addEventListener('click', () => {
+  restartGame();
+  startGame();
+});
+
+goBack.addEventListener('click', () => {
+  overlay.style.display = 'none';
+});
+
+/* Pause on visibility change (basic) */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && running) {
+    // pause
+    running = false;
+    stopSpawning();
+    if (timerInterval) clearInterval(timerInterval);
+  } else if (!document.hidden && !running && timerEl.textContent > 0 && startBtn.disabled) {
+    // resume
+    running = true;
+    startSpawning();
+    startTimer();
+  }
+});
+
+/* Resize handler to avoid overflow placements on small boards */
+window.addEventListener('resize', () => {
+  // no-op but keeps board geometry fresh for next spawn
+});
+
+/* keyboard support: space to start */
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (!running) startGame();
+  }
+});
+
+/* initial spawn slider display */
+spawnVal.textContent = spawnRange.value + '-1200';
+</script>
+</body>
+</html>
